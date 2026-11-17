@@ -1,4 +1,4 @@
-# app/nodes.py (Day 12: real report node)
+# app/nodes.py (Day 14: KEYWORDS extended, dev-only analysis)
 import re
 from pathlib import Path
 
@@ -15,7 +15,8 @@ MAX_RETRIES = 2
 MAX_ALERT_CHARS = 2000
 KEYWORDS = re.compile(
     r'error|fail|warn|down|expired|latency|timeout|degrad|lost|unreach|space|drift|offset|'
-    r'swap|balloon|dead|refused|denied|skew|resolve|servfail|predictive|offline|flap|not responding',
+    r'swap|balloon|dead|refused|denied|skew|resolve|servfail|predictive|offline|flap|not responding|'
+    r'powered on by ha|link state|low memory|memsched|alarm|(?:drive|pd) removed|rebuild|timed out',
     re.I,
 )
 
