@@ -1,4 +1,4 @@
-# app/rag.py (Day 10: in-memory Chroma, configurable fetch/threshold, no-match fallback)
+# app/rag.py (Day 10: in-memory Chroma, RAG_MAX_DISTANCE default 1.2 chosen on dev)
 import os
 import re
 from pathlib import Path
@@ -54,8 +54,8 @@ def search(query, k=3, fetch=None, max_distance=None):
     (the caller handles the fallback)."""
     fetch = fetch or int(os.getenv('RAG_FETCH', '8'))
     if max_distance is None:
-        # starting default only: tuned on dev (Chroma default = L2 distance)
-        max_distance = float(os.getenv('RAG_MAX_DISTANCE', '1.4'))
+        # chosen on dev (Day 10 sweep, see eval/results/dev_log.md); Chroma default = L2 distance
+        max_distance = float(os.getenv('RAG_MAX_DISTANCE', '1.2'))
     col = _get_collection()
     res = col.query(query_embeddings=_embed([query]), n_results=fetch,
                     include=['documents', 'metadatas', 'distances'])
