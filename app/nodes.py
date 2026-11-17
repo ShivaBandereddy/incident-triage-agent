@@ -1,4 +1,4 @@
-# app/nodes.py (Day 11: + human_approval, route_after_approval, report stub)
+# app/nodes.py (Day 12: real report node)
 import re
 from pathlib import Path
 
@@ -133,4 +133,33 @@ def route_after_approval(state):
 
 
 def report(state):
-    return {'report': 'TODO'}  # real report node comes on Day 12
+    """Template report, no LLM. Safe on partial state (missing keys, empty lists)."""
+    hyps = state.get('hypotheses') or []
+    escalated = bool(state.get('escalated')) or not state.get('approved', False)
+    status = ('ESCALATED: needs human investigation' if escalated
+              else 'Recommended root cause reviewed and approved by a human')
+    lines = [
+        '# Incident report',
+        f"**Alert:** {state.get('alert_text', '-')}",
+        f"**Service:** {state.get('service') or '-'} | **Severity:** {state.get('severity') or '-'}",
+        f'**Status:** {status}',
+        '',
+        '## Root cause hypotheses',
+    ]
+    if state.get('retrieval_failed'):
+        lines.append('_No runbook matched above the distance threshold; confidence reduced._')
+    if not hyps:
+        lines.append('_No hypotheses produced._')
+    for i, h in enumerate(hyps, 1):
+        lines.append(f"{i}. **{h['cause']}** (confidence {h['confidence']:.2f}, "
+                     f"runbook: {h.get('runbook') or 'none'})")
+        lines += [f'   - evidence: {e}' for e in h.get('evidence') or []]
+    lines += ['', '## Recommended steps (for human review, never auto-run)',
+              state.get('proposed_fix') or '-',
+              '', '## Key log findings']
+    findings = state.get('log_findings') or []
+    lines += [f'- {f}' for f in findings] if findings else ['- (none)']
+    if state.get('security_flags'):
+        lines += ['', '## Security flags'] + [f'- {s}' for s in state['security_flags']]
+    lines += ['', '## Postmortem draft', '- Impact: TBD', '- Timeline: TBD', '- Follow-ups: TBD']
+    return {'report': '\n'.join(lines), 'escalated': escalated}
