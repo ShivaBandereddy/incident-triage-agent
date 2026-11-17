@@ -1,0 +1,7 @@
+pytest
+pydantic
+langgraph
+langchain-core
+chromadb
+fastapi
+httpx
