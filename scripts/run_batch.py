@@ -10,7 +10,7 @@ split, n = sys.argv[1], int(sys.argv[2])
 incs = json.load(open(f'data/incidents_{split}.json'))[:n]
 use_rag = os.getenv('USE_RAG', '1') != '0'
 print('use_rag =', use_rag)
-graph = build_graph(use_rag=use_rag)  # Day 11: use_approval flag vastundi
+graph = build_graph(use_rag=use_rag, use_approval=False)  # batch runs never pause for a human
 correct = errors = 0
 for inc in incs:
     try:
