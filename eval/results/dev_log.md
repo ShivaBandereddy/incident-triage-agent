@@ -87,3 +87,18 @@ All numbers are k of n counts on the dev set. Confidence/calibration notes are e
 
 ### Next
 - Day 13: baseline + evaluation harness. Repeat dev 40 several times for run-to-run variance (inc-006 flip, inc-027).
+
+- ## Day 13 (18 Nov 2026): baseline + evaluation harness
+
+- Added `app/baseline.py` (baseline = one call, alert + filtered logs; baseline_ctx = same + all 10 runbooks), `eval/metrics.py` (pure metric functions), `eval/run_eval.py` (4 systems, per-incident try/except so an error is counted as an error, saves results/outputs/failures per system), `eval/make_table.py`, `tests/test_metrics.py` (7 offline tests).
+- Changes vs the plan code: metrics moved to their own module; errors counted separately (`errors`); `runbook_top1` compares file stems; per-system `*_outputs.json` saved for Day 14 error analysis; `LIMIT` and `EVAL_TAG` env vars.
+- Tests: `pytest tests -q` gave 28 passed (8 + 13 + 7).
+- Small run (`LIMIT=5`, dev[0..4], one run, fresh clone): baseline 4 of 5 top1, agent_rag 4 of 5 top1. Exploratory only: 3 of the 5 incidents share one cause.
+  - baseline miss: inc-012 (got raid_degraded, confidence about 0.5, not escalated).
+  - agent_rag miss: inc-006 (datastore_full). The baseline got inc-006 right in this run, so nothing here shows the agent beating the baseline.
+  - top3: baseline 4 of 5, agent_rag 5 of 5.
+  - runbook_top1: agent_rag 4 of 5; baseline 0 of 5 by design (no runbooks), report as n/a.
+  - Cost per incident (fresh cache): baseline 1 call, 1324 input tokens, 2.6 s; agent_rag 2.8 calls, 2261 input tokens, 8.2 s.
+  - Calibration (exploratory, n=5): ECE and Brier hand-checked against the code (ECE baseline 0.16, agent 0.17).
+- Observation to check on Day 14: escalation rule is confidence < 0.5, so exactly 0.5 is not escalated.
+- Next: Day 14 full dev run, 4 systems, one run each (n=40), then error analysis.
