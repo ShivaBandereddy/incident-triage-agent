@@ -13,8 +13,9 @@ No real company, customer or personal data is included. No Loghub or other third
 | File | Contents |
 |---|---|
 | `incidents_dev.json` | 40 incidents, used to tune prompts, runbooks and thresholds |
-| `incidents_test.json` | 60 incidents, used only for final numbers (frozen) |
+| `incidents_test.json` | 60 incidents, used only for final numbers (frozen, see below) |
 | `runbooks/*.md` | 10 runbooks (the RAG knowledge base) |
+| `signal_variants.json` | Reworded versions of the signal-line templates (see "Hand edits and wording variants") |
 
 ## Composition
 
@@ -59,14 +60,35 @@ The agent receives only `alert_text` and `log_snippet`. All other fields are lab
 - Background noise is drawn from about 36 hand-written templates, weighted so that common lines appear often and scheduled jobs are rarer. Some noise lines contain harmless words such as "error 0" or "warning" on purpose.
 - Signal lines, red herrings and (optionally) injection lines are inserted at random times with random values (hostnames, PIDs, latencies).
 
+## Hand edits and wording variants
+
+After generation, two post-processing steps were applied once, before the test set was frozen:
+
+1. **Hand edits** (`scripts/apply_manual_edits.py`): one incident per fault type (7 in dev, 3 in test) got one extra clue line and one reworded line, written by me.
+2. **Wording variants** (`scripts/make_variants.py`, `scripts/apply_variants.py`): Gemini rewrote the wording of my own signal-line templates in 3 styles (terse, verbose, console). Each variant was checked by code (same placeholders, same process prefix, no category names, filter keywords kept) and then reviewed by hand for meaning. 105 of 120 variants were kept (10 rejected by code, 5 by hand; the hand rejections are listed in `scripts/apply_variants.py`). About half of the signal and decoy lines were swapped for a variant: 35 lines in 24 dev incidents and 54 lines in 33 test incidents. The 10 hand-edited incidents were skipped.
+
+Gemini was used only to reword lines I wrote. It did not generate incidents, labels or runbooks.
+
+Because of these two steps, `generate_incidents.py` alone does not reproduce the released files. The released files are the generator output (seed 42), then `apply_manual_edits.py`, then `apply_variants.py`. Do not re-run any of them on the released files.
+
 ## Known limitations
 
 - Log formats are approximations of VMware/Nutanix-style lines, not real captures.
 - One log can mix ESXi, Nutanix and Linux sources on the same host.
+- Names inside a message can differ from the log's host field (for example a line says `on node-09` while the log host is `esx-host-07`, or the alert names a node while the log shows an ESXi host).
 - A failed host can still log "is not responding" lines, which a real dead host would not.
 - A decoy line and a red herring can contradict each other (for example a clock-skew decoy next to a "time sync OK" herring).
+- Wording variants are model-written. They are plausible but not real vendor log formats, and some are more verbose than a real syslog line.
 - 10 fault types only, closed set. Real incidents are messier.
 - Small test set: 36 regular, 12 unknown, 12 injection. Per-injection-style n = 2, so per-style results are indicative only.
+
+## Test set freeze
+
+`incidents_test.json` was frozen on 2026-11-17.
+
+SHA-256: `de8e51a209754aaee9408c422673d48880884a14346034cd568cf1097bcbf3a5`
+
+`tests/test_frozen.py` checks this hash, so pytest and CI fail if the file changes. If the test set ever has to change (for example a real data bug), the change and the reason must be written down in `docs/FINDINGS.md`, and results before and after must not be mixed.
 
 ## Rules for using this data
 
