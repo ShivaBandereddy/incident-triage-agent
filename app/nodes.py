@@ -1,6 +1,8 @@
-# app/nodes.py (Day 10: + search_runbooks, runbook name normalizing)
+# app/nodes.py (Day 11: + human_approval, route_after_approval, report stub)
 import re
 from pathlib import Path
+
+from langgraph.types import interrupt
 
 from app import prompts, rag
 from app.guardrails import untrusted
@@ -106,3 +108,29 @@ def hypothesize(state):
             h['confidence'] = round(h['confidence'] * 0.8, 3)
     return {'hypotheses': hyps, 'proposed_fix': out.proposed_fix,
             'escalated': decide_escalation(hyps)}
+
+
+def human_approval(state):
+    """Pause the graph and wait for a human decision (approve, or reject + feedback)."""
+    decision = interrupt({
+        'hypotheses': state['hypotheses'],
+        'proposed_fix': state['proposed_fix'],
+        'escalated': state.get('escalated', False),
+    })
+    if decision.get('approved'):
+        return {'approved': True}
+    return {'approved': False,
+            'human_feedback': decision.get('feedback', ''),
+            'retries': state.get('retries', 0) + 1}
+
+
+def route_after_approval(state):
+    if state.get('approved'):
+        return 'report'
+    if state.get('retries', 0) >= MAX_RETRIES:
+        return 'report'
+    return 'hypothesize'
+
+
+def report(state):
+    return {'report': 'TODO'}  # real report node comes on Day 12
