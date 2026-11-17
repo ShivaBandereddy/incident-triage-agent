@@ -32,11 +32,11 @@ All numbers are k of n counts on the dev set. Confidence/calibration notes are e
 
 ### Graph with RAG (`run_batch.py dev 5`, same 5 incidents as Day 9)
 
-- 5 of 5 correct, 0 errors (Day 9 baseline without RAG: 4 of 5).
-- inc-006 (decoy): now datastore_latency 0.85, runbook datastore-latency.md, not escalated. Day 9 had datastore_full 0.85.
+- First run (Day 10 session): 5 of 5 correct, 0 errors (Day 9 baseline without RAG: 4 of 5).
+- inc-006 (decoy): datastore_latency 0.85, runbook datastore-latency.md, not escalated. Day 9 had datastore_full 0.85.
 - All 5 cited runbook values are real file names.
-- Caveat: n=5, 3 of 5 are datastore_latency, one incident changed, one run each (model sampling is not controlled). Consistent with the runbook "How to tell this apart" hint helping, but not proof. Full dev 40 comparison comes on Day 12/13.
-
+- UPDATE (Day 11 re-run, same code path, fresh clone): 4 of 5 correct, inc-006 MISS again (datastore_full 0.85, runbook datastore-full.md, not escalated). So inc-006 flips between runs; the first 5 of 5 is not evidence that RAG fixes it.
+- Correct statement: RAG alone does not reliably fix the inc-006 decoy. Model output varies from run to run (temperature is ignored by this model) and a fresh clone has no cache/. Full dev 40 with repeated runs comes on Day 12/13.
 
 ### Fallback test (Colab, subprocess, no LLM calls)
 
@@ -44,3 +44,13 @@ All numbers are k of n counts on the dev set. Confidence/calibration notes are e
 - `search_runbooks` with the default threshold returned datastore-latency.md, datastore-full.md, storage-path-down.md with `retrieval_failed = False`.
 - With `RAG_MAX_DISTANCE=0.1`, `search_runbooks` returned `{'runbook_matches': [], 'retrieval_failed': True}`.
 - Note: calling `rag.build_index()` inside a notebook kernel right after `pip install` hit an opentelemetry ImportError (stale packages in the kernel). Not a code bug; run scripts as subprocesses or restart the session.
+
+## Day 11: human approval, final graph
+
+- Added `human_approval` (interrupt), `route_after_approval`, `report` stub ('TODO') in app/nodes.py; `build_graph(use_rag, use_approval, checkpointer)` in app/graph.py; `scripts/run_cli.py`; `run_batch.py` uses `use_approval=False`.
+- Plan code fix: in `route_after_approval` the retries check was indented inside `if approved`, so rejects never hit the retry limit. Fixed (approved -> report; retries >= MAX_RETRIES -> report; else hypothesize).
+- Tested in Colab (`run_cli.py dev 0`, inc-002):
+  - Approve path: graph paused with hypotheses + proposed_fix, `y` gave report 'TODO'.
+  - Reject path: feedback "try memory pressure" re-ran hypothesize. The model kept datastore_latency on top (0.9) and added memory_pressure at 0.4 using the feedback as evidence, so feedback is used as a hint, not blindly followed. Second reject ("still not sure, check again") hit MAX_RETRIES=2 and went to report 'TODO' without a third pause.
+- One run each, one incident (n=1), so this shows the control flow works, not how often feedback helps.
+- Batch re-run with `use_approval=False`: 4 of 5 (see Day 10 update above).
