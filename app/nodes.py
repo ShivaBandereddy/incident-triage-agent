@@ -1,8 +1,8 @@
-# app/nodes.py (Day 9 v1: log filter + intake + analyze_logs + hypothesize)
+# app/nodes.py (Day 10: + search_runbooks, runbook name normalizing)
 import re
 from pathlib import Path
 
-from app import prompts
+from app import prompts, rag
 from app.guardrails import untrusted
 from app.llm import call_structured
 from app.schemas import Findings, Hypotheses, Intake
@@ -58,18 +58,39 @@ def analyze_logs(state):
     return {'log_findings': out.findings}
 
 
+def search_runbooks(state):
+    query = state['alert_text'][:MAX_ALERT_CHARS] + '\n' + '\n'.join(state.get('log_findings', []))
+    try:
+        matches = rag.search(query, k=3)
+    except Exception:  # index missing / Chroma error: continue without runbooks
+        matches = []
+    return {'runbook_matches': matches, 'retrieval_failed': not matches}
+
+
+def _norm_runbook(value, matches):
+    """Keep a cited runbook only if it is one of the retrieved files (by file name)."""
+    if not value:
+        return None
+    name = Path(str(value).strip()).name.lower()
+    for m in matches:
+        if m['runbook'].lower() in (name, name + '.md'):
+            return m['runbook']
+    return None
+
+
 def decide_escalation(hyps):
     return (not hyps) or hyps[0]['cause'] == 'unknown' or hyps[0]['confidence'] < CONF_THRESHOLD
 
 
 def hypothesize(state):
     retrieval_failed = state.get('retrieval_failed', False)
+    matches = state.get('runbook_matches', [])
     user = untrusted(
         alert=state['alert_text'][:MAX_ALERT_CHARS],
         service=state.get('service'),
         log_findings=state.get('log_findings', []),
         runbook_excerpts=[{'runbook': m['runbook'], 'text': m['text']}
-                          for m in state.get('runbook_matches', [])],
+                          for m in matches],
         runbook_note='No runbook matched. Do not cite a runbook.' if retrieval_failed else '',
         human_feedback=state.get('human_feedback') or '',
     )
@@ -79,6 +100,7 @@ def hypothesize(state):
         h['confidence'] = min(1.0, max(0.0, h['confidence']))
         if h['cause'] not in CAUSES + ['unknown']:
             h['cause'] = 'unknown'
+        h['runbook'] = _norm_runbook(h.get('runbook'), matches)
         if retrieval_failed:  # fallback: no runbook support, so lower confidence
             h['runbook'] = None
             h['confidence'] = round(h['confidence'] * 0.8, 3)
