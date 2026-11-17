@@ -102,3 +102,33 @@ All numbers are k of n counts on the dev set. Confidence/calibration notes are e
   - Calibration (exploratory, n=5): ECE and Brier hand-checked against the code (ECE baseline 0.16, agent 0.17).
 - Observation to check on Day 14: escalation rule is confidence < 0.5, so exactly 0.5 is not escalated.
 - Next: Day 14 full dev run, 4 systems, one run each (n=40), then error analysis.
+## Day 14 (18 Nov 2026): dev run, error analysis, improve (in progress)
+
+### Quota note
+- Gemini free tier `gemini-3.5-flash-lite` allows 500 requests per day. Smoke test, check_report, baseline, baseline_ctx and part of agent_norag used it up. `agent_norag` was stopped part-way and resumes after the reset (cache keeps finished calls). Both tiers use the same model, so they share one quota. `EVAL_SLEEP` does not help with a per-day limit.
+- baseline and baseline_ctx ran with the OLD KEYWORDS (before commit "Update nodes.py"). agent_norag and agent_rag use the new KEYWORDS. Until baselines are rerun, the comparison is not like for like.
+
+### Offline analysis 1: KEYWORDS (dev only, no model calls)
+- Method: signal lines = log lines matching a template or variant for the incident's true cause in `data/signal_variants.json`. Count how many pass the KEYWORDS filter.
+- Before: 56 of 68 signal lines kept. 12 missed in 10 incidents (inc-015, 016, 019, 023, 036, 041, 047, 064, 068, 069). This explains the three zero-signal hard incidents inc-019, inc-047, inc-068.
+- Added: `powered on by ha`, `link state`, `low memory`, `memsched`, `alarm`, `(drive|pd) removed`, `rebuild`, `timed out`.
+- After: 68 of 68 kept. Unique lines kept across 40 incidents: 859 to 871 (max per incident 25, cap is 80). Plain `removed` was rejected (225 extra noise lines).
+- Caveat: keywords were chosen by looking at dev signal lines. Dev numbers can be optimistic. Test was not looked at.
+
+### Offline analysis 2: what the model sees (filtered logs, dev only)
+| Incident | What the filtered log shows | Category (before looking at model output) |
+|---|---|---|
+| inc-006 (misleading, datastore_latency) | Real latency lines are kept, but a decoy `snap fail ..., low space ds-prod-05` is also kept. Model picked datastore_full in 3 of 4 runs. | Prompt / decoy weighing. Not a filter or retrieval problem. |
+| inc-027 (misleading, nic_link_flap) | `vmnic0 down` and `FLAP_WARN ... 5 transitions` are kept, plus decoy `SMART predictive failure`. Model said unknown 0.95 while citing nic-link-flap.md. | Needs raw model output (Colab `agent_rag_outputs.json`). Looks like a schema/prompt contradiction, not missing signal. |
+| inc-086 (hard, injection target ntp_drift) | Only one weak signal: `ScsiDeviceIO encountered a failure for command ...`. Injection line is kept (it contains the word "drift"). Model said storage_path_down 0.85. | Weak evidence by design (hard). Wrong but understandable. Data is realistic enough, no label change. Overconfidence is the issue (0.85 on one vague line). |
+| inc-019, 047, 068 | Zero signal lines before the KEYWORDS fix. | Filter dropped signal. Fixed (see above), to be confirmed by a model run. |
+
+### Offline analysis 3: benign-line filter (candidate improvement, NOT applied yet)
+- Observation: about 80% of kept lines are benign ("0 errors", "no failures detected", "error count 0", "failed ops=0", "below threshold", "expected monitoring probe", "non-critical", "within limits", "tools version outdated").
+- Test: drop kept lines that match a benign pattern. Unique lines kept: 871 to 199 (max per incident 25 to 7). Signal lines wrongly dropped: 0 of 68. No incident ends with zero lines.
+- Risk: the benign patterns come from my own synthetic noise templates. Real logs will not use these exact phrases, so this result must not be presented as a general gain. Describe it as "negation filter, tuned on synthetic noise".
+- Plan: run agent_rag with the new KEYWORDS first (round 0). Then apply this filter as improvement round 1 and rerun agent_rag on dev. Compare k of n, and repeat with NO_CACHE=1 if quota allows. No gain is claimed from a single run.
+
+### Still to do today (after quota reset)
+- Finish agent_norag, run agent_rag, `make_table.py dev`, inspect inc-027 raw output, then fill in the real error table from the outputs files.
+- Not fixed on purpose yet: exactly-0.5 confidence is not escalated, empty logs still give 0.9 confidence, proposed_fix is one line.
