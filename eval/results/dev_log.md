@@ -54,3 +54,36 @@ All numbers are k of n counts on the dev set. Confidence/calibration notes are e
   - Reject path: feedback "try memory pressure" re-ran hypothesize. The model kept datastore_latency on top (0.9) and added memory_pressure at 0.4 using the feedback as evidence, so feedback is used as a hint, not blindly followed. Second reject ("still not sure, check again") hit MAX_RETRIES=2 and went to report 'TODO' without a third pause.
 - One run each, one incident (n=1), so this shows the control flow works, not how often feedback helps.
 - Batch re-run with `use_approval=False`: 4 of 5 (see Day 10 update above).
+
+## Day 12 (17 Nov 2026): report node, edge cases, smoke test
+
+### Report node
+- `report` in app/nodes.py is now a template report with no LLM call: header, alert, service/severity, status, hypotheses (confidence 2 decimals, runbook or none, evidence), recommended steps ("for human review, never auto-run"), key log findings, optional security flags, postmortem draft (TBD).
+- Status is ESCALATED if `escalated` is true or the human did not approve; otherwise "Recommended root cause reviewed and approved by a human".
+- Safe on partial state (missing keys, empty lists).
+
+### Tests
+- `tests/test_report.py`: 13 offline tests (no network, no Gemini): report variants, empty log_snippet, 0 hypotheses, cause not in allowed list -> unknown, confidence clamp and fake runbook name -> None, retrieval_failed lowers confidence x0.8, RAG index missing, 5000-char alert truncated to 2000.
+- Colab: `pytest tests -q` gave 21 passed (8 earlier + 13 new).
+
+### End-to-end check (`scripts/check_report.py`, real Gemini, n=1 per case)
+- A: approve path on dev[0..2] (inc-002, inc-003, inc-001): real report built, status "approved by a human", top cause datastore_latency 0.95 in all three. Same cause three times, so this shows the pipeline runs, not accuracy.
+- B: reject twice on dev[0]: 2 pauses, retries=2, no third pause, status ESCALATED.
+- C: empty log_snippet: no crash, but still datastore_latency 0.9 (the alert text itself says "latency"). Confident answer with no log evidence; calibration example for Day 14. No code change.
+- D: 6000-char alert: no crash, datastore_latency 0.76 (0.95 on the normal alert). One run, could be noise.
+- Cosmetic: `proposed_fix` comes back as one line "1. ... 2. ... 3. ..."; readable, not changed.
+
+### Smoke test: `run_batch.py dev 40` (RAG on, use_approval=False), one run
+- Result: 34 of 40 correct, 0 errors (one retried GoogleAPIError recovered). Part of the run may have come from cache of an interrupted earlier run on the same code, so treat as a single sample.
+- 3 of 3 unknown incidents correct (unknown 0.2-0.3, escalated). Known-cause incidents: 31 of 37.
+- Misses (6):
+  - inc-006 (misleading): datastore_full 0.85, not escalated. Fourth run on this incident: miss, hit, miss, miss.
+  - inc-019, inc-047, inc-068 (hard): unknown 0.2-0.3, escalated. All three have zero signal lines kept by filter_logs (known KEYWORDS issue). Safe failure.
+  - inc-086 (hard): expected datastore_latency, got storage_path_down 0.85, not escalated. Confident wrong.
+  - inc-027 (misleading): got unknown 0.95 while citing nic-link-flap.md, escalated. Contradictory (confident "unknown" with the right runbook). Cause not checked yet; raw model output to be inspected on Day 14.
+- Confident wrong and not escalated: 2 of 6 misses (inc-006, inc-086). Escalated misses: 4 of 6. Calibration is exploratory.
+- Not fixed on purpose. run_batch.py now flushes output and supports `EVAL_SLEEP` (seconds to wait after each incident).
+- Note: `use_approval=False` has no report node, so the report node was tested with check_report.py, not the batch.
+
+### Next
+- Day 13: baseline + evaluation harness. Repeat dev 40 several times for run-to-run variance (inc-006 flip, inc-027).
