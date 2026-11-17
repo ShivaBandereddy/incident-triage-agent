@@ -1,0 +1,801 @@
+{
+  "datastore_latency": [
+    {
+      "index": 0,
+      "template": "vmkernel: Device naa.{wwn} performance has deteriorated. I/O latency increased from {a} ms to {b} ms",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: naa.{wwn} latency up: {a}->{b}ms"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The storage device naa.{wwn} has experienced a performance drop, showing an increase in I/O latency from {a} ms to {b} ms."
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: Storage Performance Alert: Device naa.{wwn} latency increased from {a} ms to {b} ms."
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "hostd: Datastore {ds} read latency {b} ms exceeds threshold",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "hostd: ds {ds} read latency {b}ms > limit"
+        },
+        {
+          "style": "verbose",
+          "text": "hostd: The read latency for datastore {ds} has reached {b} ms, which is higher than the established threshold."
+        },
+        {
+          "style": "console",
+          "text": "hostd: Performance Warning: Datastore {ds} read latency of {b} ms exceeds threshold."
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "vmkernel: ScsiDeviceIO: Cmd(0x45a2) 0x2a to dev naa.{wwn} failed H:0x0 D:0x28 P:0x0 (queue full)",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: SCSI Cmd 0x2a dev naa.{wwn} failed queue full"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: ScsiDeviceIO encountered a failure for command 0x45a2 (0x2a) targeting device naa.{wwn} with status H:0x0 D:0x28 P:0x0 due to queue full condition."
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: SCSI I/O Failure: Command 0x45a2 to naa.{wwn} failed with queue full status."
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 3,
+      "template": "vpxa: Datastore {ds} write latency {b} ms, I/O from VM {vm} stalled",
+      "variants": [
+        {
+          "style": "verbose",
+          "text": "vpxa: Datastore {ds} reported a write latency of {b} ms, resulting in stalled I/O operations from virtual machine {vm}."
+        },
+        {
+          "style": "console",
+          "text": "vpxa: Datastore Alert: {ds} write latency is {b} ms and I/O from VM {vm} is stalled."
+        }
+      ],
+      "rejected": [
+        {
+          "style": "terse",
+          "text": "vpxa: ds {ds} write {b}ms, vm {vm} I/O stalled",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    }
+  ],
+  "storage_path_down": [
+    {
+      "index": 0,
+      "template": "vmkernel: qlnativefc: vmhba{h}: LOOP DOWN detected",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: qlnativefc vmhba{h} loop down"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The qlnativefc driver on vmhba{h} has reported a LOOP DOWN event"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: [Alert] qlnativefc vmhba{h}: Fiber channel loop is down"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "vmkernel: ScsiPath: path {path} state changed to dead",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: ScsiPath {path} dead"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The storage subsystem indicates that ScsiPath {path} has transitioned to a dead state"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: [Critical] ScsiPath {path} state is now dead"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "vmkernel: NMP: lost path redundancy to naa.{wwn}, 1 active path remaining",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: NMP naa.{wwn} redundancy lost, 1 left"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: [Warning] NMP redundancy lost for naa.{wwn}; 1 active path remains"
+        }
+      ],
+      "rejected": [
+        {
+          "style": "verbose",
+          "text": "vmkernel: Native Multipathing has registered a loss of path redundancy for naa.{wwn}, leaving 1 active path",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "template": "hostd: Path {path} is down for device naa.{wwn}",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "hostd: Path {path} down naa.{wwn}"
+        },
+        {
+          "style": "verbose",
+          "text": "hostd: Management service reports that path {path} is currently down for storage device naa.{wwn}"
+        },
+        {
+          "style": "console",
+          "text": "hostd: [Alert] Path {path} is down for device naa.{wwn}"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "host_failure_ha": [
+    {
+      "index": 0,
+      "template": "fdm: host {host} is not responding",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "fdm: {host} down"
+        },
+        {
+          "style": "console",
+          "text": "fdm: HOST_DOWN: Target host {host} is not responding to queries"
+        }
+      ],
+      "rejected": [
+        {
+          "style": "verbose",
+          "text": "fdm: system monitoring reports that host {host} is currently unresponsive",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "template": "fdm: host {host} datastore heartbeat lost on {ds}",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "fdm: heartbeat lost on {ds} for {host}"
+        },
+        {
+          "style": "verbose",
+          "text": "fdm: the datastore heartbeat for host {host} has been lost on storage {ds}"
+        },
+        {
+          "style": "console",
+          "text": "fdm: HEARTBEAT_LOST: Host {host} lost datastore heartbeat on volume {ds}"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "fdm: HA initiating restart of {n} VMs from failed host {host}",
+      "variants": [
+        {
+          "style": "verbose",
+          "text": "fdm: high availability service is initiating the restart sequence for {n} virtual machines originating from the failed host {host}"
+        },
+        {
+          "style": "console",
+          "text": "fdm: HA_FAILOVER: Triggering restart of {n} virtual machines from offline host {host}"
+        }
+      ],
+      "rejected": [
+        {
+          "style": "terse",
+          "text": "fdm: restarting {n} VMs for {host}",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "template": "vpxd: VM {vm} powered on by HA",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vpxd: HA powered on {vm}"
+        },
+        {
+          "style": "verbose",
+          "text": "vpxd: virtual machine {vm} has been successfully powered back on by the high availability system"
+        },
+        {
+          "style": "console",
+          "text": "vpxd: VM_RESTARTED: Virtual machine {vm} power-on executed by HA"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "nic_link_flap": [
+    {
+      "index": 0,
+      "template": "vmkernel: Link: {nic} link state down",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: {nic} down"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The network interface {nic} has experienced a link state change to down"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: LINK_DOWN: {nic} is currently offline"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "vmkernel: Link: {nic} link state up",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: {nic} up"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The network interface {nic} has experienced a link state change to up"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: LINK_UP: {nic} is currently online"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "vmkernel: Uplink: {nic} flapping, {n} transitions in 60 s",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: {nic} flap {n}/60s"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: FLAP_WARN: {nic} unstable with {n} transitions in 60 s"
+        }
+      ],
+      "rejected": [
+        {
+          "style": "verbose",
+          "text": "vmkernel: Interface {nic} is unstable, recording {n} state transitions over a period of 60 seconds",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "template": "vmkernel: Net: uplink {nic} marked down by beacon probing, failover to remaining uplink",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: {nic} down via beacon, failover"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: Uplink {nic} was marked as down following beacon probing results, initiating failover to remaining uplink"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: BEACON_DOWN: {nic} deactivated, failover triggered"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "datastore_full": [
+    {
+      "index": 0,
+      "template": "hostd: Datastore {ds} free space {free}% below 5% threshold",
+      "variants": [
+        {
+          "style": "verbose",
+          "text": "hostd: The available free space percentage for datastore {ds} has dropped to {free} percent, which is beneath the five percent minimum threshold."
+        },
+        {
+          "style": "console",
+          "text": "hostd: ALERT - Datastore {ds} free space at {free}%, breaching the 5% threshold."
+        }
+      ],
+      "rejected": [
+        {
+          "style": "terse",
+          "text": "hostd: ds {ds} free {free}% < 5%",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "template": "vpxd: Alarm Datastore usage on disk {ds} changed to Red",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vpxd: ds {ds} alarm Red"
+        },
+        {
+          "style": "verbose",
+          "text": "vpxd: The status alarm regarding datastore usage on disk {ds} has transitioned to a critical Red state."
+        },
+        {
+          "style": "console",
+          "text": "vpxd: WARNING - Datastore usage alarm for disk {ds} status is now Red."
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "hostd: Snapshot consolidation failed for {vm}: insufficient space on {ds}",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "hostd: snap fail {vm}, low space {ds}"
+        },
+        {
+          "style": "console",
+          "text": "hostd: ERROR - Snapshot consolidation failed for {vm} due to insufficient space on {ds}."
+        }
+      ],
+      "rejected": [
+        {
+          "style": "verbose",
+          "text": "hostd: The consolidation process for snapshots on virtual machine {vm} could not be completed because there is not enough storage capacity on datastore {ds}.",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "template": "hostd: VM {vm} suspended, no more space for virtual disk on {ds}",
+      "variants": [
+        {
+          "style": "console",
+          "text": "hostd: ALERT - Virtual machine {vm} suspended; virtual disk has no remaining space on {ds}."
+        }
+      ],
+      "rejected": [
+        {
+          "style": "terse",
+          "text": "hostd: vm {vm} paused, full {ds}",
+          "reason": "lost all filter keywords"
+        },
+        {
+          "style": "verbose",
+          "text": "hostd: Virtual machine {vm} was placed into a suspended state because the virtual disk has run out of available storage capacity on datastore {ds}.",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    }
+  ],
+  "memory_pressure": [
+    {
+      "index": 0,
+      "template": "vmkernel: Balloon: ballooning active on {n} VMs",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: Balloon: {n} VMs active"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: Ballooning mechanism is currently active across a total of {n} virtual machines"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: Balloon - Active on {n} VMs"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "vmkernel: MemSched: host memory state changed to low",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: MemSched: low memory"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The memory scheduler has detected that the host memory state has transitioned to low"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: MemSched - Host memory state changed to low"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "vmkernel: Swap: VM {vm} swapped {swap} MB to disk",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vmkernel: Swap: {vm} swapped {swap}MB"
+        },
+        {
+          "style": "verbose",
+          "text": "vmkernel: The swap subsystem reports that virtual machine {vm} has swapped {swap} MB to disk storage"
+        },
+        {
+          "style": "console",
+          "text": "vmkernel: Swap - VM {vm} swapped {swap} MB to disk"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 3,
+      "template": "vpxd: Alarm Host memory usage on {host} changed to Red, usage {pct}%",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vpxd: Alarm: {host} memory Red {pct}%"
+        },
+        {
+          "style": "verbose",
+          "text": "vpxd: The alarm monitoring host memory usage on {host} has changed state to Red with an usage of {pct}%"
+        },
+        {
+          "style": "console",
+          "text": "vpxd: ALARM - Host memory usage on {host} changed to Red, usage {pct}%"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "dns_failure": [
+    {
+      "index": 0,
+      "template": "resolver: no response from nameserver 10.0.0.2",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "resolver: timeout 10.0.0.2"
+        },
+        {
+          "style": "verbose",
+          "text": "resolver: transmission to nameserver 10.0.0.2 resulted in no response"
+        },
+        {
+          "style": "console",
+          "text": "resolver: NAMESERVER_TIMEOUT 10.0.0.2"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "resolver: SERVFAIL for vcenter.corp.local from 10.0.0.2",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "resolver: SERVFAIL vcenter.corp.local 10.0.0.2"
+        },
+        {
+          "style": "verbose",
+          "text": "resolver: received SERVFAIL response for domain vcenter.corp.local queried via 10.0.0.2"
+        },
+        {
+          "style": "console",
+          "text": "resolver: SERVFAIL_RECEIVED vcenter.corp.local from 10.0.0.2"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "resolver: failed to resolve vcenter.corp.local: Name or service not known",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "resolver: lookup fail vcenter.corp.local"
+        },
+        {
+          "style": "verbose",
+          "text": "resolver: resolution attempt for target vcenter.corp.local failed due to unknown name or service"
+        },
+        {
+          "style": "console",
+          "text": "resolver: RESOLUTION_FAILURE vcenter.corp.local unknown name"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 3,
+      "template": "hostd: cannot reach vCenter vcenter.corp.local, DNS lookup timed out",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "hostd: DNS timeout vcenter.corp.local"
+        },
+        {
+          "style": "verbose",
+          "text": "hostd: unable to establish connection to vCenter vcenter.corp.local because DNS lookup timed out"
+        },
+        {
+          "style": "console",
+          "text": "hostd: VCENTER_UNREACHABLE DNS lookup timed out for vcenter.corp.local"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "ntp_drift": [
+    {
+      "index": 0,
+      "template": "ntpd: time sync lost, offset {offset} s",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "ntpd: sync lost, offset {offset}s"
+        },
+        {
+          "style": "verbose",
+          "text": "ntpd: the time synchronization has been lost with an offset of {offset} seconds"
+        },
+        {
+          "style": "console",
+          "text": "ntpd: CRITICAL synchronization lost offset {offset} s"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "chronyd: Cannot synchronise: no selectable sources",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "chronyd: no sources"
+        },
+        {
+          "style": "verbose",
+          "text": "chronyd: synchronization is not possible because there are no selectable sources"
+        },
+        {
+          "style": "console",
+          "text": "chronyd: ALERT no selectable sources for synchronization"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "krb5: Clock skew too great while authenticating to AD",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "krb5: skew too great for AD"
+        },
+        {
+          "style": "verbose",
+          "text": "krb5: the clock skew is measured as too great during the authentication process to Active Directory"
+        },
+        {
+          "style": "console",
+          "text": "krb5: WARNING excessive clock skew during AD authentication"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 3,
+      "template": "sshd: pam_krb5: authentication failure for admin (clock skew)",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "sshd: pam_krb5 auth fail admin skew"
+        },
+        {
+          "style": "verbose",
+          "text": "sshd: pam_krb5 reported an authentication failure for user admin due to clock skew"
+        },
+        {
+          "style": "console",
+          "text": "sshd: pam_krb5 auth failure for admin caused by clock skew"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "cert_expiry": [
+    {
+      "index": 0,
+      "template": "hostd: SSL certificate for {host} expired on {day}",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "hostd: cert for {host} expired {day}"
+        },
+        {
+          "style": "console",
+          "text": "hostd: CERTIFICATE EXPIRED - Host {host} certificate expired on {day}"
+        }
+      ],
+      "rejected": [
+        {
+          "style": "verbose",
+          "text": "hostd: The Secure Sockets Layer certificate associated with the managed host {host} has reached its expiration date on {day}",
+          "reason": "lost all filter keywords"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "template": "vpxd: TLS handshake failed: certificate has expired",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vpxd: TLS handshake dropped: expired cert"
+        },
+        {
+          "style": "verbose",
+          "text": "vpxd: The Transport Layer Security handshake procedure was unsuccessful because the presented certificate has expired"
+        },
+        {
+          "style": "console",
+          "text": "vpxd: HANDSHAKE FAILED - TLS handshake rejected due to expired certificate"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "rhttpproxy: SSL_accept failed: sslv3 alert certificate expired",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "rhttpproxy: SSL accept error: expired cert"
+        },
+        {
+          "style": "verbose",
+          "text": "rhttpproxy: The secure connection accept operation failed due to an SSLv3 alert indicating that the certificate has expired"
+        },
+        {
+          "style": "console",
+          "text": "rhttpproxy: CONNECTION ERROR - SSL accept failed because the certificate is expired"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 3,
+      "template": "vpxa: Authentication failed: certificate verify failed (certificate has expired)",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "vpxa: Auth error: cert expired"
+        },
+        {
+          "style": "verbose",
+          "text": "vpxa: The authentication attempt was unsuccessful as the certificate verification process failed because the certificate has expired"
+        },
+        {
+          "style": "console",
+          "text": "vpxa: AUTHENTICATION FAILED - Certificate verification failed due to expiration"
+        }
+      ],
+      "rejected": []
+    }
+  ],
+  "raid_degraded": [
+    {
+      "index": 0,
+      "template": "storcli: Disk slot 2 SMART predictive failure on {node}",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "storcli: slot 2 SMART fail {node}"
+        },
+        {
+          "style": "verbose",
+          "text": "storcli: The drive located in slot 2 is reporting a SMART predictive failure condition on {node}"
+        },
+        {
+          "style": "console",
+          "text": "storcli: [ALERT] SMART predictive failure detected on disk slot 2 for {node}"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 1,
+      "template": "kernel: megaraid_sas: Physical drive removed, enclosure 252 slot 2",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "kernel: megaraid_sas: pd removed enc 252 slot 2"
+        },
+        {
+          "style": "verbose",
+          "text": "kernel: megaraid_sas: A physical disk drive has been physically unplugged from enclosure 252 slot 2"
+        },
+        {
+          "style": "console",
+          "text": "kernel: megaraid_sas: [WARNING] Physical drive removal detected in enclosure 252, slot 2"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 2,
+      "template": "storcli: Virtual drive 0 state changed to Degraded, 1 drive offline",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "storcli: VD0 degraded, 1 offline"
+        },
+        {
+          "style": "verbose",
+          "text": "storcli: Virtual drive 0 has transitioned into a degraded operational state due to 1 drive being offline"
+        },
+        {
+          "style": "console",
+          "text": "storcli: [CRITICAL] Virtual drive 0 status is Degraded with 1 offline drive"
+        }
+      ],
+      "rejected": []
+    },
+    {
+      "index": 3,
+      "template": "storcli: Rebuild started on VD0 slot 2",
+      "variants": [
+        {
+          "style": "terse",
+          "text": "storcli: rebuild started VD0 s2"
+        },
+        {
+          "style": "verbose",
+          "text": "storcli: A data rebuild operation has successfully started on virtual drive 0 using slot 2"
+        },
+        {
+          "style": "console",
+          "text": "storcli: [INFO] Rebuild process initiated on VD0 slot 2"
+        }
+      ],
+      "rejected": []
+    }
+  ]
+}
