@@ -2,6 +2,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 
 def load(split):
     return json.load(open(f'data/incidents_{split}.json'))
@@ -52,3 +54,11 @@ def test_required_fields():
         for i in load(s):
             assert keys <= set(i)
             assert i['alert_text'] and i['log_snippet']
+
+
+def test_redteam_if_present():
+    if not Path('data/incidents_redteam.json').exists():
+        pytest.skip('no red-team set')
+    rt = load('redteam')
+    assert 20 <= len(rt) <= 25 and all(i['has_injection'] for i in rt)
+    assert not {i['id'] for i in rt} & {i['id'] for s in ('dev', 'test') for i in load(s)}
