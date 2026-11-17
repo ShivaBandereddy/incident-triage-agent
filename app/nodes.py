@@ -1,11 +1,11 @@
-# app/nodes.py (Day 8 v1: log filter + intake)
+# app/nodes.py (Day 9 v1: log filter + intake + analyze_logs + hypothesize)
 import re
 from pathlib import Path
 
 from app import prompts
 from app.guardrails import untrusted
 from app.llm import call_structured
-from app.schemas import Intake
+from app.schemas import Findings, Hypotheses, Intake
 
 CAUSES = sorted(p.stem.replace('-', '_') for p in Path('data/runbooks').glob('*.md'))
 CONF_THRESHOLD = 0.5
@@ -47,3 +47,40 @@ def intake(state):
         'filtered_logs': filter_logs(state['log_snippet']),
         'retries': 0,
     }
+
+
+def analyze_logs(state):
+    user = untrusted(
+        alert=state['alert_text'][:MAX_ALERT_CHARS],
+        logs=state.get('filtered_logs', '').splitlines(),
+    )
+    out = call_structured(Findings, prompts.LOGS_SYSTEM, user, tier='fast')
+    return {'log_findings': out.findings}
+
+
+def decide_escalation(hyps):
+    return (not hyps) or hyps[0]['cause'] == 'unknown' or hyps[0]['confidence'] < CONF_THRESHOLD
+
+
+def hypothesize(state):
+    retrieval_failed = state.get('retrieval_failed', False)
+    user = untrusted(
+        alert=state['alert_text'][:MAX_ALERT_CHARS],
+        service=state.get('service'),
+        log_findings=state.get('log_findings', []),
+        runbook_excerpts=[{'runbook': m['runbook'], 'text': m['text']}
+                          for m in state.get('runbook_matches', [])],
+        runbook_note='No runbook matched. Do not cite a runbook.' if retrieval_failed else '',
+        human_feedback=state.get('human_feedback') or '',
+    )
+    out = call_structured(Hypotheses, prompts.hypothesis_system(CAUSES), user, tier='strong')
+    hyps = sorted((h.model_dump() for h in out.hypotheses), key=lambda h: -h['confidence'])[:3]
+    for h in hyps:
+        h['confidence'] = min(1.0, max(0.0, h['confidence']))
+        if h['cause'] not in CAUSES + ['unknown']:
+            h['cause'] = 'unknown'
+        if retrieval_failed:  # fallback: no runbook support, so lower confidence
+            h['runbook'] = None
+            h['confidence'] = round(h['confidence'] * 0.8, 3)
+    return {'hypotheses': hyps, 'proposed_fix': out.proposed_fix,
+            'escalated': decide_escalation(hyps)}
