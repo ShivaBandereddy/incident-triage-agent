@@ -1,10 +1,10 @@
 # Findings
 
 > Draft skeleton (Day 14 prep). Every `TBD` is filled only from real run outputs. No number is written before the run exists.
-> Wording rules: counts are "k of n"; calibration is "exploratory"; per-injection-style n=2 is "indicative only"; 1 incident = 2.8 points (of 36 known).
+> Wording rules: counts are "k of n"; calibration is "exploratory"; per-injection-style n=2 is "indicative only"; 1 incident = 2.1 points (of 48 known on test).
 
 ## 1. Setup
-- Data: 100 synthetic incidents (dev 40, test 60: 36 known cause, 12 unknown, 12 with injection). Own noise templates, VMware/Nutanix-style signals are my own approximations. No real incident data.
+- Data: 100 synthetic incidents (dev 40, test 60: 48 known cause, of which 12 carry a prompt injection; 12 unknown cause). Own noise templates, VMware/Nutanix-style signals are my own approximations. No real incident data.
 - Systems: `baseline` (1 call, alert + filtered logs), `baseline_ctx` (same + all 10 runbooks), `agent_norag`, `agent_rag`.
 - Model: Gemini free tier `gemini-3.5-flash-lite` for both tiers. Free tier limit is 500 requests per day, so runs were split across days.
 - Test set frozen (sha256 checked by `tests/test_frozen.py`). Never tuned on test. Test run once per system with `NO_CACHE=1`, regex guardrails off for the main table.
@@ -18,7 +18,7 @@
 TBD: paste `make_table.py test` output.
 
 ### Interpretation
-- baseline vs agent_rag (k of 36): TBD. A difference of 2-3 incidents is 5-8 points; do not overclaim.
+- baseline vs agent_rag (k of 48): TBD. A difference of 2-3 incidents is 4-6 points; do not overclaim.
 - agent_norag vs agent_rag (value of RAG): TBD.
 - baseline_ctx vs agent_rag (runbook stuffing vs retrieval): TBD.
 - Calibration (exploratory, bins have small n): TBD.
@@ -46,7 +46,7 @@ TBD
 
 ## 7. Limitations
 - Synthetic data, 10 fault types, closed set of causes.
-- Test set has 60 incidents (36 known cause). 1 incident = 2.8 points.
+- Test set has 60 incidents (48 known cause). 1 incident = 2.1 points.
 - Per-injection-style n=2: indicative only, not a statistical claim.
 - Single run per system (model output varies between runs).
 - Free-tier models, own noise templates.
