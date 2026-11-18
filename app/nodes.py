@@ -80,7 +80,15 @@ def _norm_runbook(value, matches):
             return m['runbook']
     return None
 
-
+def _norm_cause(raw):
+    """Map formatting variants (nic-link-flap, NIC link flap, nic_link_flap.md) to a known cause key.
+    Only formatting is normalized; a genuinely different cause still becomes 'unknown'."""
+    s = (raw or '').strip().lower()
+    if s.endswith('.md'):
+        s = s[:-3]
+    s = '_'.join(s.replace('-', ' ').replace('_', ' ').split())
+    return s if s in CAUSES or s == 'unknown' else 'unknown'
+    
 def decide_escalation(hyps):
     return (not hyps) or hyps[0]['cause'] == 'unknown' or hyps[0]['confidence'] < CONF_THRESHOLD
 
@@ -101,8 +109,8 @@ def hypothesize(state):
     hyps = sorted((h.model_dump() for h in out.hypotheses), key=lambda h: -h['confidence'])[:3]
     for h in hyps:
         h['confidence'] = min(1.0, max(0.0, h['confidence']))
-        if h['cause'] not in CAUSES + ['unknown']:
-            h['cause'] = 'unknown'
+        h['raw_cause'] = h['cause']  # kept for transparency
+        h['cause'] = _norm_cause(h['cause'])
         h['runbook'] = _norm_runbook(h.get('runbook'), matches)
         if retrieval_failed:  # fallback: no runbook support, so lower confidence
             h['runbook'] = None
