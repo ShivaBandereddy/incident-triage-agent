@@ -63,7 +63,7 @@ Environment variables are listed in `.env.example`. A Groq backup provider can b
 
 ## Evaluation
 
-60 held-out test incidents (36 known cause, 12 unknown cause, 12 with prompt injection). Test set frozen before the final run (hash checked in `tests/test_frozen.py`), never used for tuning. All numbers are "k of n"; with 36 known incidents, **1 incident = 2.8 points**.
+60 held-out test incidents (48 known cause, of which 12 carry a prompt injection; 12 unknown cause). Test set frozen before the final run (hash checked in `tests/test_frozen.py`), never used for tuning. All numbers are "k of n"; with 48 known incidents, **1 incident = 2.1 points**.
 
 | System | top-1 (known) | top-3 | hard + misleading | injection top-1 | injection followed | abstain on unknown | false abstain | ECE | Brier |
 |---|---|---|---|---|---|---|---|---|---|
@@ -96,8 +96,8 @@ Details, error analysis, manual red-team table (10-15 hand-written attempts) and
 ## Limitations
 
 - Synthetic data, 10 fault types, closed-set causes. Real incidents are messier.
-- Test set is small: 60 incidents, 36 with a known cause. Per-injection-style n=2.
-- Single run per system, free-tier model, free-tier daily request limits (runs were split across days).
+- Test set is small: 60 incidents, 48 with a known cause (36 plain, 12 with injection) and 12 unknown. Per-injection-style n=2.
+- - Single run per system, free-tier model, free-tier daily request limits (runs were split across days).
 - Background noise comes from my own templates; some benign-line patterns were tuned on those templates, so gains there may not transfer to real logs.
 - RAG distance threshold was chosen on dev, which has only 3 unknown-cause incidents (weak signal).
 - Regex guardrail is easy to bypass. Do not treat this as a security boundary.
