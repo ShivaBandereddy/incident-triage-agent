@@ -132,3 +132,41 @@ All numbers are k of n counts on the dev set. Confidence/calibration notes are e
 ### Still to do today (after quota reset)
 - Finish agent_norag, run agent_rag, `make_table.py dev`, inspect inc-027 raw output, then fill in the real error table from the outputs files.
 - Not fixed on purpose yet: exactly-0.5 confidence is not escalated, empty logs still give 0.9 confidence, proposed_fix is one line.
+
+
+## Day 14 results (18 Nov 2026): dev run, error analysis
+
+### Dev results (one run per system, n=37 known-cause, 1 incident = 2.7 points)
+| System | top-1 | hard + misleading | false abstain | note |
+|---|---|---|---|---|
+| baseline | 32 of 37 | 18 of 23 | 6 of 37 | old KEYWORDS |
+| baseline_ctx | 33 of 37 | 19 of 23 | 5 of 37 | old KEYWORDS |
+| agent_norag | 34 of 37 | 20 of 23 | 2 of 37 | new KEYWORDS |
+| agent_rag, round 0 | 32 of 37 | n/a | n/a | 3 nic_link_flap misses were a post-processing bug |
+| agent_rag, round 1 (bug fix) | 35 of 37 | 21 of 23 | 1 of 37 | rerun from cache, 0 new calls |
+
+Differences of 1-2 incidents between systems are within run-to-run noise (single run, Gemini ignores temperature). No claim that RAG beats no-RAG is made from dev.
+Baselines were run with the old KEYWORDS, so the comparison is not fully like for like.
+
+### Improvement round 1: cause-string normalization (bug fix, not label tuning)
+- Symptom: inc-023, 025, 027 (nic_link_flap) had top cause `unknown`, confidence 0.95, and cited nic-link-flap.md.
+- Cause: the model returned `nic-link-flap` (hyphens); the code accepted only `nic_link_flap` and mapped everything else to `unknown`.
+- Confirmed by scanning `cache/*.json`: the only invalid raw cause across all cached calls was `nic-link-flap` (3 times).
+- Fix: `_norm_cause()` in `app/nodes.py` (lowercase, `-`/spaces to `_`, strip `.md`), used in `hypothesize` and `app/baseline.py`; the raw string is kept as `raw_cause`. Unrelated causes still map to `unknown`.
+- Result: agent_rag 32 to 35 of 37. No new LLM calls (post-processing runs after the cached output). Tests: 42 passed.
+
+### Error table (agent_rag, remaining misses)
+| Incident | Expected | Got | Category | Notes |
+|---|---|---|---|---|
+| inc-019 (hard) | host_failure_ha | unknown, escalated | filter kept the signal, `analyze_logs` dropped it | `vpxd: VM app-35 powered on by HA` passed the filter but findings only had an snmp line. Escalated, so a human would see it. |
+| inc-086 (hard) | datastore_latency | storage_path_down, not escalated | retrieval miss + overconfidence | datastore-latency.md not in top 3 (retrieval hit@3 is 36 of 37). One vague `ScsiDeviceIO` line only. Wrong and confident is the worst failure type. |
+
+Other findings:
+- Retrieval hit@3: 36 of 37.
+- inc-027: the earlier suspicion (schema/prompt contradiction) was wrong; it was the mapping bug above.
+- Data realism: inc-086 is weak evidence by design; no label change made.
+
+### Decision
+- Rounds used: 1 of 3. The benign-line filter (see Offline analysis 3) is NOT applied: it is tuned on my own synthetic noise templates and would not transfer to real logs.
+- Remaining misses (inc-019, inc-086) are documented as limitations. No further tuning on 2 incidents (overfitting risk).
+- Freeze code, prompts, thresholds, KEYWORDS and RAG_MAX_DISTANCE before Day 15.
