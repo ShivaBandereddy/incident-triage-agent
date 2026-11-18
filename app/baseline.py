@@ -6,7 +6,7 @@ from pathlib import Path
 from app import prompts
 from app.guardrails import untrusted
 from app.llm import call_structured
-from app.nodes import CAUSES, MAX_ALERT_CHARS, _norm_runbook, decide_escalation, filter_logs
+from app.nodes import CAUSES, MAX_ALERT_CHARS, _norm_cause, _norm_runbook, decide_escalation, filter_logs
 from app.schemas import Hypotheses
 
 
@@ -33,8 +33,8 @@ def run(inp, with_runbooks=False):
     allowed = [{'runbook': n} for n in runbook_names()] if with_runbooks else []
     for h in hyps:
         h['confidence'] = min(1.0, max(0.0, h['confidence']))
-        if h['cause'] not in CAUSES + ['unknown']:
-            h['cause'] = 'unknown'
+        h['raw_cause'] = h['cause']
+        h['cause'] = _norm_cause(h['cause'])
         h['runbook'] = _norm_runbook(h.get('runbook'), allowed)  # None if not a real file
     return {'hypotheses': hyps, 'escalated': decide_escalation(hyps),
             'proposed_fix': out.proposed_fix}
