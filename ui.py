@@ -1,7 +1,10 @@
-# ui.py  (Streamlit front end for the Incident Triage Agent)
-# Run: PYTHONPATH=. streamlit run ui.py
+# ui.py  (Streamlit front end for the Incident Triage Agent, deploy-ready)
+# Local: DEMO_OPEN=1 PYTHONPATH=. streamlit run ui.py   (no password)
+# Cloud: set GOOGLE_API_KEY and DEMO_PASSWORD in Streamlit Secrets.
 # Uses build_graph() only, so the measured pipeline is untouched.
+import hmac
 import json
+import os
 import uuid
 from pathlib import Path
 
@@ -12,6 +15,21 @@ from langgraph.types import Command
 from app.graph import build_graph
 
 st.set_page_config(page_title="Incident Triage Agent", page_icon="🛰️", layout="wide")
+
+
+def _bridge_secrets():
+    # Streamlit Cloud keeps keys in Secrets; the app code reads environment variables.
+    for k in ("GOOGLE_API_KEY", "DEMO_PASSWORD"):
+        if not os.getenv(k):
+            try:
+                os.environ[k] = str(st.secrets[k])
+            except Exception:
+                pass
+
+
+_bridge_secrets()
+MAX_RUNS = 5            # live runs per browser session
+MAX_LOG_CHARS = 200_000
 
 CSS = """
 <style>
@@ -40,8 +58,21 @@ st.markdown(CSS, unsafe_allow_html=True)
 STAGES = ["Intake", "Analyze logs", "Search runbooks", "Hypothesize", "Human review", "Report"]
 
 
+@st.cache_resource(show_spinner="First start: building runbook index (1-2 min)...")
+def ensure_index():
+    # chroma_db/ is gitignored, so a fresh cloud container has no index yet
+    try:
+        import chromadb
+        chromadb.PersistentClient(path="chroma_db").get_collection("runbooks")
+    except Exception:
+        from app.rag import build_index
+        build_index()
+    return True
+
+
 @st.cache_resource
 def get_graph():
+    ensure_index()
     # in-memory checkpointer: pending approvals are lost when the app restarts
     return build_graph(checkpointer=MemorySaver())
 
@@ -62,6 +93,8 @@ def cfg():
 
 
 def start(alert, logs, inc=None):
+    st.session_state.runs = st.session_state.get("runs", 0) + 1
+    logs = logs[:MAX_LOG_CHARS]
     st.session_state.tid = str(uuid.uuid4())
     st.session_state.inc = inc
     st.session_state.error = None
@@ -143,8 +176,22 @@ with st.sidebar:
         alert = st.text_input("Alert text")
         logs = st.text_area("Logs", height=240)
 
+    expected = os.getenv("DEMO_PASSWORD", "")
+    open_mode = os.getenv("DEMO_OPEN") == "1" and not expected
+    unlocked = open_mode
+    if not open_mode:
+        pw = st.text_input("Demo password", type="password",
+                           help="Live runs use the author's free-tier LLM quota. Ask the author for the password.")
+        unlocked = bool(expected) and hmac.compare_digest(pw.encode(), expected.encode())
+        if pw and not unlocked:
+            st.error("Wrong password.")
+        elif not pw:
+            st.caption("Enter the demo password to run live triage.")
+    left = MAX_RUNS - st.session_state.get("runs", 0)
+    if unlocked:
+        st.caption(f"{max(left, 0)} of {MAX_RUNS} live runs left in this session")
     go = st.button("Run triage", type="primary", use_container_width=True,
-                   disabled=not (alert and logs))
+                   disabled=not (alert and logs and unlocked and left > 0))
     st.divider()
     st.caption("Synthetic demo data only. Do not paste real customer or company logs "
                "(free-tier Gemini may use prompts to improve Google products).")
