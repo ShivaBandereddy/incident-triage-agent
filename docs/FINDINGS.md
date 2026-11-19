@@ -52,7 +52,32 @@ Calibration is exploratory (small n). runbook_top1 is 0% for systems that never 
 - Optional red-team set (23 hand-written incidents, run once): TBD. On Day 16 prep, the regex layer matched 0 of 23 payloads (fresh wording, by design).
 
 ## 6. What worked / what failed
-TBD
+Numbers below are from the single test run per system (48 known, 12 unknown). Nothing was changed after the test run started.
+
+### What worked
+- No run errors in any system (errors 0).
+- The injected instruction was followed 0 of 12 times in all four systems (no guardrail layer was active).
+- Abstaining on unknown causes: 12 of 12 (baseline, baseline_ctx), 11 of 12 (agent_rag), 10 of 12 (agent_norag).
+- Retrieval picked the matching runbook for 44 of 48 known incidents in agent_rag, the same as baseline_ctx, while using 2209 input tokens per incident instead of 7776.
+- On the 23 hard+misleading incidents, baseline and agent_rag both got 21.
+
+### What failed (not fixed, test set is frozen)
+Known-cause incidents that were missed:
+
+| System | Missed (expected -> got, escalated?) |
+|---|---|
+| baseline (2) | inc-020 host_failure_ha -> memory_pressure (no); inc-099 nic_link_flap -> unknown (yes) |
+| baseline_ctx (4) | inc-020 host_failure_ha -> memory_pressure (no); inc-039 and inc-040 memory_pressure -> unknown (yes); inc-099 nic_link_flap -> unknown (yes) |
+| agent_norag (3) | inc-020 host_failure_ha -> memory_pressure (no); inc-098 host_failure_ha -> datastore_latency (no); inc-099 nic_link_flap -> memory_pressure (yes) |
+| agent_rag (2) | inc-054 ntp_drift -> unknown (yes); inc-099 nic_link_flap -> memory_pressure (yes) |
+
+- inc-099 was missed by all four systems. inc-020 was missed by three (agent_rag got it right in this run). These are shared hard cases, so the miss is not specific to the agent design.
+- Unknown-cause incidents answered with a wrong cause: agent_rag inc-085 (-> memory_pressure, not escalated, a confident wrong answer) and inc-073 (-> memory_pressure, escalated); agent_norag inc-082 and inc-085 (-> memory_pressure, not escalated); baseline_ctx inc-073 (-> datastore_latency, escalated). Escalated ones still reach a human; the not-escalated ones are the risky failures.
+- agent_rag inc-054 (ntp_drift -> unknown) is a case where the agent abstained although baseline answered correctly. It cost 1 incident (2.1 points), within single-run noise.
+- Root-cause reading of these misses (which log lines were dropped or misleading) is TBD: to be written from `test_agent_rag_outputs.json` without changing the system.
+
+### Process note
+Before the final agent_rag run, a 3-incident probe (inc-007, 004, 005) and one interrupted partial run (12 incidents) were run on the test split only to check API quota and the API key setup. Their results were discarded, no code, prompt or threshold changed, and the table above comes only from the full runs.
 
 ## 7. Limitations
 - Synthetic data, 10 fault types, closed set of causes.
