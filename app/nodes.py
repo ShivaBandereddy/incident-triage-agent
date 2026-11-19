@@ -5,7 +5,8 @@ from pathlib import Path
 from langgraph.types import interrupt
 
 from app import prompts, rag
-from app.guardrails import untrusted
+import os
+from app.guardrails import flag_dangerous, remove_lines, scan_injection, untrusted
 from app.llm import call_structured
 from app.schemas import Findings, Hypotheses, Intake
 
@@ -40,14 +41,27 @@ def filter_logs(log_snippet, max_lines=80):
     return '\n'.join(l + (f' (x{c})' if c > 1 else '') for _, _, l, c in items)
 
 
+def guardrails_on():
+    return os.getenv('GUARDRAILS', 'on') == 'on'
+
+
 def intake(state):
+    logs = state['log_snippet']
     alert = state['alert_text'][:MAX_ALERT_CHARS]
+    flags = []
+    if guardrails_on():
+        suspicious = scan_injection(logs)
+        logs = remove_lines(logs, suspicious)
+        flags = ['Suspicious log line removed: ' + s[:120] for s in suspicious]
+        if scan_injection(alert):
+            flags.append('Suspicious text in alert (kept, treated as data)')
     out = call_structured(Intake, prompts.INTAKE_SYSTEM, untrusted(alert=alert), tier='fast')
     return {
         'service': out.service,
         'severity': out.severity,
         'symptom': out.symptom,
-        'filtered_logs': filter_logs(state['log_snippet']),
+        'filtered_logs': filter_logs(logs),
+        'security_flags': flags,
         'retries': 0,
     }
 
@@ -115,8 +129,16 @@ def hypothesize(state):
         if retrieval_failed:  # fallback: no runbook support, so lower confidence
             h['runbook'] = None
             h['confidence'] = round(h['confidence'] * 0.8, 3)
-    return {'hypotheses': hyps, 'proposed_fix': out.proposed_fix,
-            'escalated': decide_escalation(hyps)}
+    fix = out.proposed_fix
+    flags = list(state.get('security_flags', []))
+    dangerous = guardrails_on() and flag_dangerous(fix)
+    if dangerous:
+        fix = '[BLOCKED] Proposed fix contained a dangerous command. Escalate to a human.'
+        msg = 'Dangerous command blocked in proposed fix'
+        if msg not in flags:
+            flags.append(msg)
+    return {'hypotheses': hyps, 'proposed_fix': fix, 'security_flags': flags,
+            'escalated': decide_escalation(hyps) or dangerous}
 
 
 def human_approval(state):
