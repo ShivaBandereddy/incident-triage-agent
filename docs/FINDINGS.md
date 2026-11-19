@@ -7,7 +7,7 @@
 - Data: 100 synthetic incidents (dev 40, test 60: 48 known cause, of which 12 carry a prompt injection; 12 unknown cause). Own noise templates, VMware/Nutanix-style signals are my own approximations. No real incident data.
 - Systems: `baseline` (1 call, alert + filtered logs), `baseline_ctx` (same + all 10 runbooks), `agent_norag`, `agent_rag`.
 - Model: Gemini free tier `gemini-3.5-flash-lite` for both tiers. Free tier limit is 500 requests per day, so runs were split across days.
-- Test set frozen (sha256 checked by `tests/test_frozen.py`). Never tuned on test. Test run once per system with `NO_CACHE=1`, regex guardrails off for the main table.
+- Test set frozen (sha256 checked by `tests/test_frozen.py`). Never tuned on test. One full test run per system with `NO_CACHE=1`. No guardrail layer was wired during these runs, so the main table is effectively guardrails-off.
 
 ## 2. Dev work (Day 14)
 - KEYWORDS filter: 56 of 68 dev signal lines kept before, 68 of 68 after adding 8 patterns. Chosen by looking at dev, so dev numbers may be optimistic.
@@ -90,3 +90,8 @@ Before the final agent_rag run, a 3-incident probe (inc-007, 004, 005) and one i
 - MemorySaver is in-memory: restart loses pending approvals.
 - API: single shared key, no per-user thread ownership, not production security, no rate limiting.
 - Regex guardrail is bypassable by design (extra layer, not a guarantee).
+- - The model ignores the temperature setting, so outputs vary between runs. With one run per system, differences of 1-2 incidents (2.1-4.2 points) are noise.
+- Confident wrong answers exist: on unknown-cause incidents agent_rag and agent_norag each answered inc-085 with a wrong cause and did not escalate. The confidence score is not a reliable safety signal (confidence of exactly 0.5 is not escalated; empty logs can still get 0.9 confidence).
+- proposed_fix is a single line, not a full remediation plan. Remediation steps need human review and approval.
+- On this synthetic set the single-prompt baseline already scores 46 of 48, so the test cannot show whether the agent or RAG helps on harder or real incidents.
+- The agent costs about 3 calls and 14.9 s per incident (baseline: 1 call, 3.4 s).
