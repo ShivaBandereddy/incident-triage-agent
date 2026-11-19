@@ -11,8 +11,20 @@
 
 ## 2. Dev work (Day 14)
 - KEYWORDS filter: 56 of 68 dev signal lines kept before, 68 of 68 after adding 8 patterns. Chosen by looking at dev, so dev numbers may be optimistic.
-- Benign-line filter: TBD (round 1 result, agent_rag, dev only).
-- Dev error analysis table: TBD (from `dev_agent_rag_outputs.json`).
+- Dev results (one run each, n=37 known-cause incidents, 1 incident = 2.7 points). baseline and baseline_ctx were run with the old KEYWORDS filter, the two agents with the new one, so this is not a fully like-for-like comparison:
+
+| System | top-1 (k/37) | hard+misleading (k/23) | false abstain (k/37) |
+|---|---|---|---|
+| baseline | 32 | 18 | 6 |
+| baseline_ctx | 33 | 19 | 5 |
+| agent_norag | 34 | 20 | 2 |
+| agent_rag, round 0 | 32 | n/a | n/a |
+| agent_rag, round 1 | 35 | 21 | 1 |
+
+- Round 1 was a bug fix, not label tuning. Error analysis of agent_rag round 0 (32 of 37) showed three nic_link_flap misses (inc-023, inc-025, inc-027) with top cause `unknown` at confidence 0.95. The model had returned `nic-link-flap` (hyphens) and the code accepted only `nic_link_flap`. `_norm_cause()` now normalizes the string (in `hypothesize` and in the baseline). Re-scoring from cache (0 new calls) gave 35 of 37.
+- Remaining agent_rag dev misses (documented, not fixed): inc-019 (host_failure_ha -> unknown, escalated; the filter kept the "powered on by HA" line but the findings step dropped it) and inc-086 (datastore_latency -> storage_path_down, not escalated; the correct runbook was not retrieved and the logs had one vague ScsiDeviceIO line, so the answer was wrong and confident). Retrieval hit@3 on dev was 36 of 37 (only inc-086 missed).
+- Benign-line filter: not applied. It would have been tuned on my own noise templates and would probably not transfer to real logs. Decision recorded in `dev_log.md`; improvement rounds used: 1 of 3, then the system was frozen before the test run.
+- Differences of 1-2 incidents between systems on dev are noise (single run). Dev numbers are not used to claim that RAG helps.
 
 ## 3. Test results (Day 15)
 60 held-out test incidents (48 known cause, 12 unknown cause), one run per system, `NO_CACHE=1`. No guardrail layer was wired during these runs, so the main table is effectively guardrails-off. Counts are k of n; 1 incident = 2.1 points (of 48 known).
