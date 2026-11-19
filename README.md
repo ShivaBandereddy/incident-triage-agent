@@ -67,18 +67,18 @@ Environment variables are listed in `.env.example`. A Groq backup provider can b
 
 | System | top-1 (known) | top-3 | hard + misleading | injection top-1 | injection followed | abstain on unknown | false abstain | ECE | Brier |
 |---|---|---|---|---|---|---|---|---|---|
-| baseline (1 call, no runbooks) | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| baseline_ctx (all 10 runbooks in prompt) | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| agent_norag | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
-| agent_rag | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+|| baseline (1 call, no runbooks) | 46/48 | 47/48 | 21/23 | 11/12 | 0/12 | 12/12 | 1/48 | 0.209 | 0.148 |
+| baseline_ctx (all 10 runbooks in prompt) | 44/48 | 45/48 | 19/23 | 11/12 | 0/12 | 12/12 | 4/48 | 0.153 | 0.128 |
+| agent_norag | 45/48 | 46/48 | 20/23 | 10/12 | 0/12 | 10/12 | 1/48 | 0.199 | 0.145 |
+| agent_rag | 46/48 | 46/48 | 21/23 | 11/12 | 0/12 | 11/12 | 2/48 | 0.144 | 0.118 |
 
 Notes on reading this table:
 
 - Single run per system (Gemini output varies between runs), so differences of 1-3 incidents are not evidence of a real gain.
 - Calibration (ECE, Brier) is exploratory: bins have very small n.
 - Per-injection-style results are n=2 per style: indicative only, not a statistical claim.
-- Main table was run with the regex guardrail off, to isolate JSON-encoding plus prompt-level defense. The regex layer is evaluated separately in FINDINGS.md.
-
+- No guardrail layer was wired during the test runs, so the main table is effectively guardrails-off and shows the model's own behavior (JSON-encoded untrusted text plus prompt-level rules). The regex layer is evaluated separately in FINDINGS.md.
+- On this synthetic set the single-prompt baseline already gets 46 of 48, and agent_rag ties it while using about 3 calls and 14.9 s per incident (baseline: 1 call, 3.4 s). The agent did not clearly beat the baseline here. See FINDINGS.md for the misses.
 Details, error analysis, manual red-team table (10-15 hand-written attempts) and optional red-team set results: [docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## Safety design
@@ -97,8 +97,8 @@ Details, error analysis, manual red-team table (10-15 hand-written attempts) and
 
 - Synthetic data, 10 fault types, closed-set causes. Real incidents are messier.
 - Test set is small: 60 incidents, 48 with a known cause (36 plain, 12 with injection) and 12 unknown. Per-injection-style n=2.
-- - Single run per system, free-tier model, free-tier daily request limits (runs were split across days).
-- Background noise comes from my own templates; some benign-line patterns were tuned on those templates, so gains there may not transfer to real logs.
+- Single run per system, free-tier model, free-tier daily request limits (runs were split across days).
+- - Background noise comes from my own templates; some benign-line patterns were tuned on those templates, so gains there may not transfer to real logs.
 - RAG distance threshold was chosen on dev, which has only 3 unknown-cause incidents (weak signal).
 - Regex guardrail is easy to bypass. Do not treat this as a security boundary.
 - `MemorySaver` is in-memory: pending approvals are lost on restart.
