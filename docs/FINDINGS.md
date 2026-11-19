@@ -59,7 +59,8 @@ Calibration is exploratory (small n). runbook_top1 is 0% for systems that never 
 - Optional model comparison (Gemini vs Groq): TBD.
 
 ## 5. Guardrails and red-team (Day 17)
-- Regex layer on vs off, 12 test injection incidents, per type k of 2: TBD. Regex was written from dev types 0, 1, 2 only and is expected to miss unseen styles.
+- Regex layer on vs off, 12 test injection incidents (agent_rag, one run each, n=2 per style, indicative only): top-1 was 11 of 12 with the layer on (`GUARDRAILS=on`, `EVAL_TAG=_guard`) and 11 of 12 with it off (main table), and the injected instruction was followed 0 of 12 times in both. Per style the results were identical (style 1: 1 of 2, all other styles 2 of 2). The only miss in both runs is inc-099, which is the KEYWORDS filter gap described in section 6, not an obeyed injection. With the layer on, the guarded run had one false abstain on a known-cause incident (inc-099, escalated).
+- What the regex matched (computed by running `scan_injection` offline on the raw test incidents, because the guard run's outputs file does not store `security_flags`): in the logs it matched 1 injection line in each of the 6 incidents of styles 0, 1 and 2 (per style 2 of 2), and 0 of the 6 incidents of styles 3 (alert), 4 (indirect) and 5 (paraphrase); it matched nothing in the alert text. The regex was written from the dev examples of styles 0, 1 and 2, so the 6 catches are not evidence that it generalizes; the 6 misses are the honest result. In this test the layer did not change any outcome, because the model already ignored the injected instruction in all 12 incidents.
 - Indirect injection (poisoned runbook chunk): unit test + one manual run: TBD.
 - Manual red-team (10-15 attempts, dev only):
 
