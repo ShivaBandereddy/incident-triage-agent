@@ -95,7 +95,8 @@ Known-cause incidents that were missed:
 - Root-cause reading of three misses, from `test_agent_rag_outputs.json` (hypotheses, log findings and retrieved runbooks only; raw logs were not re-read for this):
   - inc-054 (ntp_drift -> unknown 0.2, escalated): the findings kept the line `pam_krb5: authentication failure ... (clock skew)` and the model cited it, but `ntp-drift.md` was not among the three retrieved runbooks. baseline, baseline_ctx and agent_norag answered this incident correctly, so here the retrieved context did not help. The ntp_drift runbook was also missed by retrieval on dev, so this is a known weak spot. It was escalated, so a human would see it.
   - inc-085 (unknown -> memory_pressure 0.85, not escalated): the only finding was `heap vmkernel 1 below 20% free (non-critical)`. The model used that line (and the alert text) as evidence for memory_pressure although the line itself says non-critical. This is a confident wrong answer on an unknown-cause incident, the risky failure type.
-  - inc-099 (nic_link_flap -> memory_pressure 0.4, escalated): the findings contained only benign noise lines and the same heap warning, no NIC or link line, and `nic-link-flap.md` was not retrieved. The outputs file shows what survived log analysis, not what the filter dropped, so I cannot say here whether the signal was removed by `filter_logs` or by the findings step. All four systems missed this incident.
+  - inc-099 (nic_link_flap -> memory_pressure 0.4, escalated): `filter_logs` dropped the NIC lines. In the raw log (207 lines) the only NIC-related lines matched by a quick regex check were `eth0: link up, 10000 Mbps full duplex` (6 times) and `vmnic0 up`; none of them matches KEYWORDS, so the filtered log the model saw had only benign noise and the heap warning, and `nic-link-flap.md` was not retrieved. All four systems use the same filtered logs, which is why all four missed this incident. This is a KEYWORDS generalization gap: the keywords were chosen on dev signal lines and did not cover this test variant. Not fixed, because the test set is frozen. I checked the NIC lines with a regex, not by reading all 207 lines.
+
 ### Process note
 Before the final agent_rag run, a 3-incident probe (inc-007, 004, 005) and one interrupted partial run (12 incidents) were run on the test split only to check API quota and the API key setup. Their results were discarded, no code, prompt or threshold changed, and the table above comes only from the full runs.
 
@@ -106,6 +107,7 @@ Before the final agent_rag run, a 3-incident probe (inc-007, 004, 005) and one i
 - Single run per system (model output varies between runs).
 - Free-tier models, own noise templates.
 - KEYWORDS and benign-line patterns were tuned on dev, using my own synthetic noise templates. They may not transfer to real logs.
+- On test, the KEYWORDS filter missed the only NIC signal lines of inc-099 (`link up` and `vmnic0 up` lines), and every system that uses the filtered logs missed that incident. Signal lines phrased differently from the dev variants are dropped before the model sees them.
 - RAG distance threshold was tuned on 3 unknown dev incidents (weak signal).
 - MemorySaver is in-memory: restart loses pending approvals.
 - API: single shared key, no per-user thread ownership, not production security, no rate limiting.
