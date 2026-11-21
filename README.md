@@ -62,6 +62,46 @@ PYTHONPATH=. pytest -q                                            # tests, no LL
 
 Environment variables are listed in `.env.example`. A Groq backup provider can be selected with `LLM_PROVIDER=groq`.
 
+## Architecture
+
+```mermaid
+graph TD
+    start([start]) --> intake
+    intake --> analyze_logs
+    analyze_logs --> search_runbooks
+    search_runbooks --> hypothesize
+    hypothesize --> human_approval
+    human_approval -->|approved, or 2 rejections| report
+    human_approval -->|rejected with feedback, retry| hypothesize
+    report --> finish([end])
+```
+
+- `intake`: reads the alert, filters the logs (keyword filter, regex layer).
+- `analyze_logs`: extracts log findings.
+- `search_runbooks`: retrieves runbook chunks from Chroma (RAG).
+- `hypothesize`: ranks up to 3 root-cause hypotheses with confidence, evidence and a proposed fix; low confidence escalates.
+- `human_approval`: the graph pauses; a human approves, or rejects with feedback (up to 2 retries). The agent is read-only and never runs commands.
+- `report`: builds the final report (template, no LLM call).## Architecture
+
+```mermaid
+graph TD
+    start([start]) --> intake
+    intake --> analyze_logs
+    analyze_logs --> search_runbooks
+    search_runbooks --> hypothesize
+    hypothesize --> human_approval
+    human_approval -->|approved, or 2 rejections| report
+    human_approval -->|rejected with feedback, retry| hypothesize
+    report --> finish([end])
+```
+
+- `intake`: reads the alert, filters the logs (keyword filter, regex layer).
+- `analyze_logs`: extracts log findings.
+- `search_runbooks`: retrieves runbook chunks from Chroma (RAG).
+- `hypothesize`: ranks up to 3 root-cause hypotheses with confidence, evidence and a proposed fix; low confidence escalates.
+- `human_approval`: the graph pauses; a human approves, or rejects with feedback (up to 2 retries). The agent is read-only and never runs commands.
+- `report`: builds the final report (template, no LLM call).
+  
 ## Evaluation
 
 60 held-out test incidents (48 known cause, of which 12 carry a prompt injection; 12 unknown cause). Test set frozen before the final run (hash checked in `tests/test_frozen.py`), never used for tuning. All numbers are "k of n"; with 48 known incidents, **1 incident = 2.1 points**.
