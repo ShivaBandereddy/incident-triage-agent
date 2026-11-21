@@ -9,6 +9,7 @@ import os
 from app.guardrails import flag_dangerous, remove_lines, scan_injection, untrusted
 from app.llm import call_structured
 from app.schemas import Findings, Hypotheses, Intake
+from app.trace import traced
 
 CAUSES = sorted(p.stem.replace('-', '_') for p in Path('data/runbooks').glob('*.md'))
 CONF_THRESHOLD = 0.5
@@ -45,6 +46,7 @@ def guardrails_on():
     return os.getenv('GUARDRAILS', 'on') == 'on'
 
 
+@traced
 def intake(state):
     logs = state['log_snippet']
     alert = state['alert_text'][:MAX_ALERT_CHARS]
@@ -66,6 +68,7 @@ def intake(state):
     }
 
 
+@traced
 def analyze_logs(state):
     user = untrusted(
         alert=state['alert_text'][:MAX_ALERT_CHARS],
@@ -107,6 +110,7 @@ def decide_escalation(hyps):
     return (not hyps) or hyps[0]['cause'] == 'unknown' or hyps[0]['confidence'] < CONF_THRESHOLD
 
 
+@traced
 def hypothesize(state):
     retrieval_failed = state.get('retrieval_failed', False)
     matches = state.get('runbook_matches', [])
