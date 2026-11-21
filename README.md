@@ -1,5 +1,6 @@
 # Infrastructure Incident Triage Agent
 
+![CI](https://github.com/ShivaBandereddy/incident-triage-agent/actions/workflows/ci.yml/badge.svg)
 [![tests](https://github.com/ShivaBandereddy/incident-triage-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ShivaBandereddy/incident-triage-agent/actions/workflows/ci.yml)
 
 A read-only LangGraph agent that triages infrastructure incidents (VMware-style hosts, storage, network). It reads an alert and logs, searches runbooks, ranks root causes with evidence and confidence, and proposes remediation steps. A human engineer reviews and approves the recommended steps before a report is produced. The agent never runs commands on any system.
@@ -86,7 +87,7 @@ Details, error analysis, manual red-team table (10-15 hand-written attempts) and
 - Read-only agent, human review and approval before any report is final.
 - Untrusted-data handling: all external text is JSON-encoded (`<` and `>` escaped), so a fake closing tag cannot break the prompt structure. Tag-breakout and quote-breakout tests are in `tests/test_core.py`.
 - Prompt rules tell the model to treat every string field as data.
-- Regex layer: flags and removes known injection phrasing in logs, and blocks dangerous commands (`rm -rf`, `mkfs`, `shutdown`, ...) in proposed fixes. It was written against 3 dev injection styles and will miss paraphrases, alert-text injection and indirect injection.
+- Regex layer (on by default, `GUARDRAILS=off` disables it): removes known injection phrasing from logs, flags suspicious alert text, and blocks dangerous commands (`rm -rf`, `mkfs`, `shutdown`, ...) in proposed fixes with a `[BLOCKED]` marker and escalation. It was written against 3 dev injection styles. On the 12 test injection incidents it matched styles 0, 1 and 2 (6 of 6) and none of styles 3, 4 and 5 (0 of 6), and the model alone had already followed 0 of 12 injections, so the layer did not change the test outcome. It does not scan runbook text, and many keyword-rich padding lines can push real log lines out of the 80-line cap. See FINDINGS.md section 5.
 - API: API-key header, input size limits, request logging.
 
 ## Data
