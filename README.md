@@ -3,6 +3,10 @@
 ![CI](https://github.com/ShivaBandereddy/incident-triage-agent/actions/workflows/ci.yml/badge.svg)
 [![tests](https://github.com/ShivaBandereddy/incident-triage-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ShivaBandereddy/incident-triage-agent/actions/workflows/ci.yml)
 
+**Live demo:** https://infra-incident-triage.streamlit.app/ (synthetic data only; running a triage needs a demo password because it uses my free Gemini quota, so ask me for it).
+
+![Incident Triage Agent UI](docs/img/ui.png)
+
 A read-only LangGraph agent that triages infrastructure incidents (VMware-style hosts, storage, network). It reads an alert and logs, searches runbooks, ranks root causes with evidence and confidence, and proposes remediation steps. A human engineer reviews and approves the recommended steps before a report is produced. The agent never runs commands on any system.
 
 The project is built around measurement: a 100-incident synthetic benchmark, a single-prompt baseline to compare against, ablations, and prompt-injection tests. Results and limitations are written up in [docs/FINDINGS.md](docs/FINDINGS.md).
